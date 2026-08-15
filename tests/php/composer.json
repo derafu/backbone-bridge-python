@@ -1,0 +1,18 @@
+{
+    "name": "derafu/backbone-bridge-python-tests",
+    "description": "Real, minimal PHP fixture used to test derafu-backbone-bridge-python against a real derafu/backbone-dispatcher chain, no mocks.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "derafu/backbone": "dev-main",
+        "derafu/backbone-dispatcher": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "Derafu\\TestsBackboneBridgePython\\Fixture\\": "src/Fixture/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

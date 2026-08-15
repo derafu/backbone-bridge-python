@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ruff:
+    name: Ruff
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff check
+        run: ruff check .
+
+      - name: Run ruff format --check
+        run: ruff format --check .
+
+  tests:
+    name: Tests
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Only used to run `composer install` for the PHP test fixture — the
+      # actual test run happens inside the `phpy`-enabled image below, which
+      # provides its own (PHP built with --enable-embed) interpreter.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer
+
+      - name: Install PHP fixture dependencies
+        run: composer install --no-interaction --prefer-dist
+        working-directory: tests/php
+
+      # Published by derafu/docker-python3.14-caddy-server's own workflow,
+      # not built here — building it on every run would mean recompiling
+      # PHP from source (`--enable-embed`) each time.
+      - name: Pull the phpy-enabled image
+        run: docker pull ghcr.io/derafu/docker-python3.14-caddy-server:phpy
+
+      - name: Run tests inside the phpy-enabled container
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            ghcr.io/derafu/docker-python3.14-caddy-server:phpy \
+            bash -c "
+              python3 -m venv --system-site-packages .venv &&
+              .venv/bin/pip install -e '.[dev]' --no-deps &&
+              .venv/bin/pytest -v
+            "

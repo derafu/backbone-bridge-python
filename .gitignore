@@ -1,0 +1,17 @@
+# Python.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+
+# PHP (test fixture only — this package itself ships no PHP).
+tests/php/vendor/
+tests/php/composer.lock
+
+# OS specific files.
+.DS_Store
