@@ -69,6 +69,7 @@ jobs:
             ghcr.io/derafu/docker-python3.14-caddy-server:phpy \
             bash -c "
               python3 -m venv --system-site-packages .venv &&
-              .venv/bin/pip install -e '.[dev]' --no-deps &&
+              .venv/bin/pip install --upgrade pip &&
+              .venv/bin/pip install -e '.[dev]' &&
               .venv/bin/pytest -v
             "
