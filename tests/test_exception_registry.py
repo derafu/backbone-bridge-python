@@ -82,3 +82,56 @@ def test_register_does_not_affect_other_registry_instances():
         untouched.raise_for('App\\Exception\\SomeDomainException', 'Oops.')
 
     assert type(exc_info.value) is BackboneBridgeError
+
+
+def test_register_with_a_namespace_prefix_groups_every_exception_in_it():
+    r"""A key ending in `'\'` catches any class under that namespace."""
+
+    class DomainError(BackboneBridgeError):
+        """A stand-in for a specific library's own domain exception."""
+
+    registry = ExceptionRegistry()
+    registry.register('App\\Exception\\', DomainError)
+
+    with pytest.raises(DomainError):
+        registry.raise_for('App\\Exception\\AnyClassNeverListed', 'Oops.')
+
+
+def test_an_exact_match_wins_over_a_namespace_prefix():
+    """A registered exact FQCN takes priority over a broader prefix."""
+
+    class DomainError(BackboneBridgeError):
+        """A stand-in for a broad, namespace-wide domain exception."""
+
+    class SpecificError(BackboneBridgeError):
+        """A stand-in for one specific, more precisely mapped exception."""
+
+    registry = ExceptionRegistry()
+    registry.register('App\\Exception\\', DomainError)
+    registry.register('App\\Exception\\SpecificException', SpecificError)
+
+    with pytest.raises(SpecificError):
+        registry.raise_for('App\\Exception\\SpecificException', 'Oops.')
+
+    with pytest.raises(DomainError):
+        registry.raise_for('App\\Exception\\OtherException', 'Oops.')
+
+
+def test_the_longest_matching_prefix_wins():
+    """A more specific, longer prefix wins over a broader, shorter one."""
+
+    class BroadError(BackboneBridgeError):
+        """A stand-in for a broad, top-level namespace exception."""
+
+    class NarrowError(BackboneBridgeError):
+        """A stand-in for a narrower, nested namespace exception."""
+
+    registry = ExceptionRegistry()
+    registry.register('App\\', BroadError)
+    registry.register('App\\Billing\\', NarrowError)
+
+    with pytest.raises(NarrowError):
+        registry.raise_for('App\\Billing\\SomeException', 'Oops.')
+
+    with pytest.raises(BroadError):
+        registry.raise_for('App\\Other\\SomeException', 'Oops.')

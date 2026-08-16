@@ -73,15 +73,16 @@ _DEFAULT_MAPPING: dict[str, type[BackboneBridgeError]] = {
 
 
 class ExceptionRegistry:
-    """
+    r"""
     Map PHP exception class names to the Python exception they raise.
 
     Starts pre-populated with every exception `derafu/backbone` and
     `derafu/backbone-dispatcher` themselves define. A specific library's
     own bridge extends it with its own domain exceptions through
-    `register()`; anything never registered still raises, as
-    `BackboneBridgeError`, preserving the original PHP class name in
-    `.php_class`.
+    `register()` — either one exact FQCN at a time, or an entire
+    namespace at once via a prefix ending in `'\'`; anything never
+    registered still raises, as `BackboneBridgeError`, preserving the
+    original PHP class name in `.php_class`.
 
     Deliberately has no knowledge of `phpy`: it only ever deals in plain
     strings, so it can be tested, and reasoned about, without a PHP
@@ -99,10 +100,20 @@ class ExceptionRegistry:
         php_class: str,
         exception_class: type[BackboneBridgeError],
     ) -> None:
-        """
+        r"""
         Map `php_class` to `exception_class`.
 
-        Overrides any previous mapping already registered for it.
+        `php_class` is either an exact FQCN (e.g.
+        `'Some\Namespace\SomeException'`) or a namespace prefix ending
+        in `'\'` (e.g. `'Some\Namespace\'`), grouping every exception
+        under that namespace onto `exception_class` regardless of its
+        exact class name — including ones that do not exist yet. Prefixes
+        are checked in `raise_for()` only when no exact match is found,
+        longest prefix first, so a more specific prefix registered later
+        still wins over a broader one registered earlier.
+
+        Overrides any previous mapping already registered for the same
+        `php_class`.
         """
         self._mapping[php_class] = exception_class
 
@@ -110,8 +121,23 @@ class ExceptionRegistry:
         """
         Raise the Python exception mapped to `php_class`.
 
-        Falls back to `BackboneBridgeError` when nothing is registered
-        for it.
+        Tries an exact match first, then the longest registered
+        namespace prefix that `php_class` starts with. Falls back to
+        `BackboneBridgeError` when nothing matches either way.
         """
-        exception_class = self._mapping.get(php_class, BackboneBridgeError)
+        exception_class = self._mapping.get(php_class)
+
+        if exception_class is None:
+            prefixes = (
+                key
+                for key in self._mapping
+                if key.endswith('\\') and php_class.startswith(key)
+            )
+            longest_prefix = max(prefixes, key=len, default=None)
+            if longest_prefix is not None:
+                exception_class = self._mapping[longest_prefix]
+
+        if exception_class is None:
+            exception_class = BackboneBridgeError
+
         raise exception_class(message, php_class)
