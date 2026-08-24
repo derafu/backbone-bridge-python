@@ -23,7 +23,15 @@ class OperationResult:
     raises a `BackboneBridgeError` (carrying its own `Problem`) instead of
     returning one of these, so there is never a failure case to represent
     here — only ever a successful one.
+
+    `data_type` is the type of `value` before PHP's own
+    `SafeDispatcherInterface` serializes it (`get_class()` for an object,
+    `gettype()` otherwise) — e.g. `"Derafu\\Certificate\\Certificate"`.
+    Never `None` here, unlike the PHP interface: a failure never reaches
+    this class at all (see above), so there is no failure case for it to
+    be `None` for.
     """
 
     value: Any
     metadata: ExecutionMetadata
+    data_type: str

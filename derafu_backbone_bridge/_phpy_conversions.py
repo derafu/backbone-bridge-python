@@ -36,6 +36,7 @@ def metadata_from_php(metadata: Any) -> ExecutionMetadata:
     return ExecutionMetadata(
         started_at=data['startedAt'],
         finished_at=data['finishedAt'],
+        timestamp=data['timestamp'],
         real_time=data['realTime'],
         user_time=data['userTime'],
         system_time=data['systemTime'],
@@ -83,7 +84,7 @@ def problem_from_php(problem: Any) -> Problem:
         detail=str(problem.call('getDetail')),
         instance=str(instance) if instance is not None else None,
         context=collect(problem.call('getContext')),
-        timestamp=str(problem.call('getTimestamp')),
+        timestamp=float(problem.call('getTimestamp')),
         environment=str(problem.call('getEnvironment')),
         debug=bool(problem.call('isDebug')),
         throwable=throwable,

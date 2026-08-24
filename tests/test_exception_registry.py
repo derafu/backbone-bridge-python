@@ -30,7 +30,7 @@ def _problem(php_class: str, detail: str = 'Oops.') -> Problem:
         detail=detail,
         instance=None,
         context={},
-        timestamp='2026-01-01T00:00:00+00:00',
+        timestamp=1767225600.0,
         environment='test',
         debug=True,
         throwable=SafeThrowable(
@@ -50,6 +50,7 @@ def _metadata() -> ExecutionMetadata:
     return ExecutionMetadata(
         started_at='2026-01-01T00:00:00+00:00',
         finished_at='2026-01-01T00:00:00+00:00',
+        timestamp=1767225600.0,
         real_time=0.0,
         user_time=0.0,
         system_time=0.0,

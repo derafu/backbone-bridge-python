@@ -69,6 +69,7 @@ def test_dispatch_returns_the_operations_value_on_success(dispatcher):
     result = dispatcher.dispatch(f'{_WORKER}::sum', a=a, b=b)
 
     assert result.value == a + b
+    assert result.data_type == 'integer'
 
 
 def test_dispatch_returns_real_execution_metadata_on_success(dispatcher):
@@ -76,6 +77,7 @@ def test_dispatch_returns_real_execution_metadata_on_success(dispatcher):
     result = dispatcher.dispatch(f'{_WORKER}::sum', a=5, b=7)
 
     metadata = result.metadata
+    assert metadata.timestamp > 0.0
     assert metadata.real_time >= 0.0
     assert metadata.user_time >= 0.0
     assert metadata.system_time >= 0.0
@@ -151,10 +153,12 @@ def test_dispatch_failure_carries_the_real_problem_and_metadata(dispatcher):
         'Something went wrong while running the operation.'
     )
     assert problem.instance == f'{_WORKER}::fail'
+    assert problem.timestamp > 0.0
     assert problem.throwable.php_class == 'RuntimeException'
     assert problem.throwable.previous is None
 
     metadata = exc_info.value.metadata
+    assert metadata.timestamp == problem.timestamp
     assert metadata.real_time >= 0.0
     assert metadata.pid > 0
 

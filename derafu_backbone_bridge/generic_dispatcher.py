@@ -99,8 +99,13 @@ class GenericDispatcher:
 
         if result.call('isSuccess'):
             value = collect(result.call('getValue'))
+            data_type = str(result.call('getDataType'))
 
-            return OperationResult(value=value, metadata=metadata)
+            return OperationResult(
+                value=value,
+                metadata=metadata,
+                data_type=data_type,
+            )
 
         problem = problem_from_php(result.call('getProblem'))
         self.exceptions.raise_for(problem, metadata)

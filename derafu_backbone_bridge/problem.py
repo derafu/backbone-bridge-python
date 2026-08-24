@@ -47,6 +47,10 @@ class Problem:
 
     `debug` is kept here purely as the informational flag PHP reported,
     not as something this class uses to decide anything.
+
+    `timestamp` is a Unix epoch (seconds since 1970-01-01, sub-second
+    precision), the same value `ExecutionMetadata.timestamp` would carry
+    for the same failed dispatch.
     """
 
     type: str
@@ -54,7 +58,7 @@ class Problem:
     detail: str
     instance: str | None
     context: dict
-    timestamp: str
+    timestamp: float
     environment: str
     debug: bool
     throwable: SafeThrowable

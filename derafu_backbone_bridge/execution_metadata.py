@@ -18,6 +18,11 @@ class ExecutionMetadata:
     r"""
     Assumes Linux/macOS, same as the PHP side: no Windows support.
 
+    `timestamp` is the same moment as `finished_at`, as a Unix epoch
+    (seconds since 1970-01-01, sub-second precision) instead of an ISO
+    string — kept for flexible reuse (sorting, arithmetic) without having
+    to parse `finished_at` back.
+
     `real_time`/`user_time`/`system_time` are the "real"/"user"/"sys" of
     the `time` command — wall-clock elapsed vs. actual CPU seconds spent.
     `memory_used` is a delta (can be negative, if the garbage collector
@@ -28,6 +33,7 @@ class ExecutionMetadata:
 
     started_at: str
     finished_at: str
+    timestamp: float
     real_time: float
     user_time: float
     system_time: float
