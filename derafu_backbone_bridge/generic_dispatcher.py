@@ -7,8 +7,10 @@ from typing import Any
 
 import phpy
 
+from ._phpy_conversions import collect, metadata_from_php, problem_from_php
 from .exception_registry import ExceptionRegistry
 from .exceptions import BootstrapError
+from .operation_result import OperationResult
 
 
 class GenericDispatcher:
@@ -74,16 +76,18 @@ class GenericDispatcher:
             else ExceptionRegistry()
         )
 
-    def dispatch(self, operation_id: str, **params: Any) -> Any:
+    def dispatch(self, operation_id: str, **params: Any) -> OperationResult:
         """
         Dispatch `operation_id` with `params` as keyword parameters.
 
-        `operation_id` has the "package.component.worker:operation" form.
-        Returns the operation's return value on success. Raises a
+        `operation_id` has the "package.component.worker::operation" form.
+        Returns an `OperationResult` (the operation's own return value
+        plus `ExecutionMetadata`) on success. Raises a
         `BackboneBridgeError` (or one of its subclasses, per
-        `self.exceptions`) on failure — this never lets a `phpy` call
-        itself fail with an opaque error, since `SafeDispatcherInterface`
-        never throws on the PHP side either.
+        `self.exceptions`) on failure, carrying the same `ExecutionMetadata`
+        plus the full `Problem` — this never lets a `phpy` call itself
+        fail with an opaque error, since `SafeDispatcherInterface` never
+        throws on the PHP side either.
         """
         request = phpy.call(
             f'{self._OPERATION_REQUEST_CLASS}::fromId',
@@ -91,22 +95,12 @@ class GenericDispatcher:
             params,
         )
         result = self._safe_dispatcher.call('dispatch', request)
+        metadata = metadata_from_php(result.call('getMetadata'))
 
         if result.call('isSuccess'):
-            return self._collect(result.call('getValue'))
+            value = collect(result.call('getValue'))
 
-        problem = result.call('getProblem')
-        php_class = str(problem.call('getThrowable').call('getClass'))
-        message = str(problem.call('getDetail'))
-        self.exceptions.raise_for(php_class, message)
+            return OperationResult(value=value, metadata=metadata)
 
-    @staticmethod
-    def _collect(value: Any) -> Any:
-        """
-        Convert a `phpy.Array` to a native Python `dict`/`list`, recursively.
-
-        Anything else `SafeDispatcher`'s `Serializer` could have produced
-        (scalars, `phpy` objects it did not know how to flatten further) is
-        returned unchanged.
-        """
-        return value.collect() if isinstance(value, phpy.Array) else value
+        problem = problem_from_php(result.call('getProblem'))
+        self.exceptions.raise_for(problem, metadata)

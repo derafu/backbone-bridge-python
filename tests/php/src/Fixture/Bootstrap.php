@@ -13,42 +13,44 @@ declare(strict_types=1);
 namespace Derafu\TestsBackboneBridgePython\Fixture;
 
 use Derafu\BackboneDispatcher\Contract\SafeDispatcherInterface;
-use Derafu\BackboneDispatcher\Service\Caster;
-use Derafu\BackboneDispatcher\Service\DirectDispatcher;
-use Derafu\BackboneDispatcher\Service\FromArrayDeserializer;
-use Derafu\BackboneDispatcher\Service\Inspector;
-use Derafu\BackboneDispatcher\Service\ObjectFactoryRegistry;
-use Derafu\BackboneDispatcher\Service\Resolver;
-use Derafu\BackboneDispatcher\Service\SafeDispatcher;
-use Derafu\BackboneDispatcher\Service\Serializer;
-use Derafu\BackboneDispatcher\Service\TypedDispatcher;
-use Derafu\BackboneDispatcher\Service\Validator;
-use Invoker\Invoker;
+use Derafu\BackboneDispatcher\Contract\SafeExplorerInterface;
+use Derafu\BackboneDispatcher\Service\Deserialization\FromArrayDeserializer;
+use Derafu\BackboneDispatcher\Service\Deserialization\ObjectFactoryRegistry;
+use Derafu\BackboneDispatcher\Service\Discovery\Explorer;
+use Derafu\BackboneDispatcher\Service\Discovery\SafeExplorer;
+use Derafu\BackboneDispatcher\Service\Dispatch\DirectDispatcher;
+use Derafu\BackboneDispatcher\Service\Dispatch\SafeDispatcher;
+use Derafu\BackboneDispatcher\Service\Dispatch\TypedDispatcher;
+use Derafu\BackboneDispatcher\Service\Reflection\Inspector;
+use Derafu\BackboneDispatcher\Service\Resolution\Caster;
+use Derafu\BackboneDispatcher\Service\Resolution\Resolver;
+use Derafu\BackboneDispatcher\Service\Resolution\Validator;
+use Derafu\BackboneDispatcher\Service\Serialization\Serializer;
 
 /**
- * Builds a real `SafeDispatcherInterface`, wired by hand (no DI container
- * needed, on purpose: this fixture only exists to give the Python test
- * suite something real to dispatch against, not to exercise DI wiring).
+ * Builds a real `SafeDispatcherInterface`/`SafeExplorerInterface`, wired by
+ * hand (no DI container needed, on purpose: this fixture only exists to
+ * give the Python test suite something real to dispatch/explore against,
+ * not to exercise DI wiring).
+ *
+ * No `OperationPolicyInterface` passed to `DirectDispatcher`/`Explorer`:
+ * defaults to `AllowAllOperationPolicy`, matching `ExampleWorker`'s
+ * methods, none of which are tagged `#[Operation]`.
  */
 final class Bootstrap
 {
     public static function boot(): SafeDispatcherInterface
     {
-        $worker = new ExampleWorker();
-        $component = new ExampleComponent(['example_worker' => $worker]);
-        $package = new ExamplePackage(['example_component' => $component]);
-
-        $registry = new ExamplePackageRegistry();
-        $registry->registerPackage('example_package', $package);
+        [$registry, $inspector] = self::buildRegistry();
 
         $directDispatcher = new DirectDispatcher(
             $registry,
+            $inspector,
             new Resolver(
-                new Inspector(),
+                $inspector,
                 new Caster(new ObjectFactoryRegistry(fallback: new FromArrayDeserializer())),
                 new Validator(),
             ),
-            new Invoker(),
         );
 
         return new SafeDispatcher(
@@ -57,5 +59,28 @@ final class Bootstrap
             'test',
             true,
         );
+    }
+
+    public static function bootExplorer(): SafeExplorerInterface
+    {
+        [$registry, $inspector] = self::buildRegistry();
+
+        return new SafeExplorer(
+            new Explorer($registry, $inspector),
+            environment: 'test',
+            debug: true,
+        );
+    }
+
+    private static function buildRegistry(): array
+    {
+        $worker = new ExampleWorker();
+        $component = new ExampleComponent(['example_worker' => $worker]);
+        $package = new ExamplePackage(['example_component' => $component]);
+
+        $registry = new ExamplePackageRegistry();
+        $registry->registerPackage('example_package', $package);
+
+        return [$registry, new Inspector()];
     }
 }

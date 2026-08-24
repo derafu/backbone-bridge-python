@@ -12,6 +12,7 @@ from .exceptions import (
     FromArrayMethodNotFoundError,
     HandlerError,
     HandlerNotFoundError,
+    InvalidDiscoveryIdError,
     InvalidOperationIdError,
     InvalidParameterTypeError,
     JobError,
@@ -19,6 +20,8 @@ from .exceptions import (
     MissingParameterError,
     NoDeserializerFoundError,
     ObjectFactoryError,
+    OperationNotAllowedError,
+    OperationNotFoundError,
     PackageError,
     PackageNotFoundError,
     ResolverError,
@@ -29,6 +32,8 @@ from .exceptions import (
     WorkerError,
     WorkerNotFoundError,
 )
+from .execution_metadata import ExecutionMetadata
+from .problem import Problem
 
 # The two namespaces below, spelled out in full, push every entry in
 # `_DEFAULT_MAPPING` past the configured line length (a single string key
@@ -69,6 +74,9 @@ _DEFAULT_MAPPING: dict[str, type[BackboneBridgeError]] = {
     _BD + 'ClassNotFoundException': ClassNotFoundError,
     _BD + 'FromArrayMethodNotFoundException': FromArrayMethodNotFoundError,
     _BD + 'NoDeserializerFoundException': NoDeserializerFoundError,
+    _BD + 'OperationNotFoundException': OperationNotFoundError,
+    _BD + 'OperationNotAllowedException': OperationNotAllowedError,
+    _BD + 'InvalidDiscoveryIdException': InvalidDiscoveryIdError,
 }
 
 
@@ -117,14 +125,23 @@ class ExceptionRegistry:
         """
         self._mapping[php_class] = exception_class
 
-    def raise_for(self, php_class: str, message: str) -> NoReturn:
+    def raise_for(
+        self,
+        problem: Problem,
+        metadata: ExecutionMetadata | None = None,
+    ) -> NoReturn:
         """
-        Raise the Python exception mapped to `php_class`.
+        Raise the Python exception mapped to `problem.throwable.php_class`.
 
         Tries an exact match first, then the longest registered
-        namespace prefix that `php_class` starts with. Falls back to
-        `BackboneBridgeError` when nothing matches either way.
+        namespace prefix that the class name starts with. Falls back to
+        `BackboneBridgeError` when nothing matches either way. Either way,
+        the raised exception carries `problem`/`metadata` in full — this
+        method only decides *which* class to raise, never rebuilds the
+        data already sitting in `problem`. `metadata` is omitted by a
+        caller (e.g. `GenericExplorer`) that has none to give.
         """
+        php_class = problem.throwable.php_class
         exception_class = self._mapping.get(php_class)
 
         if exception_class is None:
@@ -140,4 +157,4 @@ class ExceptionRegistry:
         if exception_class is None:
             exception_class = BackboneBridgeError
 
-        raise exception_class(message, php_class)
+        raise exception_class(problem, metadata)

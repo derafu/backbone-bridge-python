@@ -13,20 +13,43 @@ listed here: they are registered by that library's own bridge package
 through `ExceptionRegistry.register()`.
 """
 
+from __future__ import annotations
+
+from .execution_metadata import ExecutionMetadata
+from .problem import Problem
+
 
 class BackboneBridgeError(Exception):
     """
-    Base exception for an error `SafeDispatcher` caught on the PHP side.
+    Base exception for an error caught on the PHP side.
 
-    Always carries the original PHP exception's fully-qualified class name
-    in `php_class`, so callers can still discriminate on it even when no
-    dedicated subclass exists for it.
+    Always carries the full `Problem` that caused it (in `problem`) — a
+    real failure, from either `SafeDispatcherInterface` or
+    `SafeExplorerInterface`, always produces one on the PHP side.
+    `metadata` is `None` unless the failure came from
+    `SafeDispatcherInterface::dispatch()`: `SafeExplorerInterface` does
+    not measure `ExecutionMetadata` (yet), so there is honestly none to
+    carry for a failed `GenericExplorer` call.
+
+    `php_class` is not stored separately: it would only duplicate
+    `problem.throwable.php_class`, so it is exposed as a read-only
+    shortcut to that instead.
     """
 
-    def __init__(self, message: str, php_class: str) -> None:
-        """Store the message and the originating PHP exception class."""
-        super().__init__(message)
-        self.php_class = php_class
+    def __init__(
+        self,
+        problem: Problem,
+        metadata: ExecutionMetadata | None = None,
+    ) -> None:
+        """Store the problem and, when there is one, the execution metadata."""
+        super().__init__(problem.detail)
+        self.problem = problem
+        self.metadata = metadata
+
+    @property
+    def php_class(self) -> str:
+        """The fully-qualified PHP class name of the original exception."""
+        return self.problem.throwable.php_class
 
 
 # `derafu/backbone`: Derafu\Backbone\Exception\ServiceNotFoundException and
@@ -92,14 +115,43 @@ class StrategyError(ServiceError):
 
 
 # `derafu/backbone-dispatcher`: Derafu\BackboneDispatcher\Exception\
+# InvalidOperationIdException. Unrelated to ResolverException: raised while
+# parsing the operation id itself, before any package/component/worker has
+# even been identified.
+class InvalidOperationIdError(BackboneBridgeError):
+    """Operation id does not match "package.component.worker::operation"."""
+
+
+# `derafu/backbone-dispatcher`: Derafu\BackboneDispatcher\Exception\
+# OperationNotFoundException. Raised when an operation does not exist as a
+# public method of the targeted worker, regardless of which
+# OperationPolicyInterface is active — whether it exists is a fact about
+# the worker, not a policy decision.
+class OperationNotFoundError(BackboneBridgeError):
+    """The named operation does not exist on its worker."""
+
+
+# `derafu/backbone-dispatcher`: Derafu\BackboneDispatcher\Exception\
+# OperationNotAllowedException. Raised when an operation exists but the
+# active OperationPolicyInterface rejects it.
+class OperationNotAllowedError(BackboneBridgeError):
+    """The named operation exists but the active policy rejects it."""
+
+
+# `derafu/backbone-dispatcher`: Derafu\BackboneDispatcher\Exception\
+# InvalidDiscoveryIdException. Raised by ExplorerInterface (and
+# SafeExplorerInterface's describe()/tree()) for a discovery id that does
+# not match "package[.component[.worker[::operation]]]".
+class InvalidDiscoveryIdError(BackboneBridgeError):
+    """Discovery id does not match "package[.component[.worker[::op]]]"."""
+
+
+# `derafu/backbone-dispatcher`: Derafu\BackboneDispatcher\Exception\
 # ResolverException and its subclasses. Raised while resolving and
-# validating the parameters of an operation before invoking it.
+# validating the parameters of an operation that has already been
+# identified.
 class ResolverError(BackboneBridgeError):
     """An operation's parameters could not be resolved."""
-
-
-class InvalidOperationIdError(ResolverError):
-    """Operation id does not match "package.component.worker:operation"."""
 
 
 class InvalidParameterTypeError(ResolverError):

@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from derafu_backbone_bridge import GenericDispatcher
+from derafu_backbone_bridge import GenericDispatcher, GenericExplorer
 
 _AUTOLOAD_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -26,6 +26,16 @@ _BOOTSTRAP_CLASS = 'Derafu\\TestsBackboneBridgePython\\Fixture\\Bootstrap'
 def dispatcher():
     """Build a fresh `GenericDispatcher`, wrapping a freshly booted fixture."""
     return GenericDispatcher(_BOOTSTRAP_CLASS, autoload_path=_AUTOLOAD_PATH)
+
+
+@pytest.fixture
+def explorer():
+    """Build a fresh `GenericExplorer`, wrapping a freshly booted fixture."""
+    return GenericExplorer(
+        _BOOTSTRAP_CLASS,
+        bootstrap_method='bootExplorer',
+        autoload_path=_AUTOLOAD_PATH,
+    )
 
 
 @pytest.fixture

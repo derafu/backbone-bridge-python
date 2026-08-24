@@ -40,6 +40,11 @@ class ExampleWorker implements WorkerInterface
         return 'Example Worker';
     }
 
+    public function getDescription(): ?string
+    {
+        return 'A worker with just enough real operations to exercise every kind of outcome the Python side needs to tell apart.';
+    }
+
     public function __toString(): string
     {
         return $this->getName();
