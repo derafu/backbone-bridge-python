@@ -101,7 +101,8 @@ def test_describe_with_no_id_lists_every_package(explorer: GenericExplorer):
     """`describe(None)` lists every package, same as `get_packages()`."""
     described = explorer.describe()
 
-    assert [p['id'] for p in described] == [_PACKAGE]
+    assert 'description' in described
+    assert [p['id'] for p in described['packages']] == [_PACKAGE]
 
 
 def test_describe_resolves_a_full_path_to_the_worker(
@@ -117,8 +118,9 @@ def test_tree_nests_every_level_down_to_operations(explorer: GenericExplorer):
     """`tree()` nests components, workers and operations in one call."""
     tree = explorer.tree()
 
-    assert tree[0]['id'] == _PACKAGE
-    component = tree[0]['components'][0]
+    assert 'description' in tree
+    assert tree['packages'][0]['id'] == _PACKAGE
+    component = tree['packages'][0]['components'][0]
     assert component['id'] == f'{_PACKAGE}.{_COMPONENT}'
     worker = component['workers'][0]
     assert worker['id'] == _PATH
