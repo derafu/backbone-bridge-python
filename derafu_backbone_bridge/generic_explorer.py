@@ -51,6 +51,14 @@ class GenericExplorer:
         `autoload_path`, if omitted, falls back to the
         `BACKBONE_DISPATCHER_AUTOLOAD` environment variable. Raises
         `ValueError` if neither resolves to a path.
+
+        `bootstrap_args` is passed positionally to `bootstrap_method` via
+        `phpy.call()`, with no type checking on either side of that call:
+        it must match the exact positional signature the PHP method
+        declares, in order. A signature change on the PHP side (an added,
+        removed, reordered or retyped parameter) breaks this silently or
+        with an opaque error from `phpy`, never a Python-side type error
+        caught before the call.
         """
         resolved_path = autoload_path or os.environ.get(
             self._AUTOLOAD_PATH_ENV,
