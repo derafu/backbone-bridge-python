@@ -34,18 +34,18 @@ def metadata_from_php(metadata: Any) -> ExecutionMetadata:
     data = collect(metadata.call('toArray'))
 
     return ExecutionMetadata(
-        started_at=data['startedAt'],
-        finished_at=data['finishedAt'],
+        started_at=data['started_at'],
+        finished_at=data['finished_at'],
         timestamp=data['timestamp'],
-        real_time=data['realTime'],
-        user_time=data['userTime'],
-        system_time=data['systemTime'],
-        memory_used=data['memoryUsed'],
-        peak_memory=data['peakMemory'],
+        real_time=data['real_time'],
+        user_time=data['user_time'],
+        system_time=data['system_time'],
+        memory_used=data['memory_used'],
+        peak_memory=data['peak_memory'],
         pid=data['pid'],
-        load_average_1min=data['loadAverage1Min'],
-        load_average_5min=data['loadAverage5Min'],
-        load_average_15min=data['loadAverage15Min'],
+        load_average_1min=data['load_average_1_min'],
+        load_average_5min=data['load_average_5_min'],
+        load_average_15min=data['load_average_15_min'],
     )
 
 

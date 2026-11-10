@@ -77,13 +77,18 @@ def test_dispatch_returns_real_execution_metadata_on_success(dispatcher):
     result = dispatcher.dispatch(f'{_WORKER}::sum', a=5, b=7)
 
     metadata = result.metadata
+    assert metadata.started_at
+    assert metadata.finished_at
     assert metadata.timestamp > 0.0
     assert metadata.real_time >= 0.0
     assert metadata.user_time >= 0.0
     assert metadata.system_time >= 0.0
+    assert isinstance(metadata.memory_used, int)
     assert metadata.peak_memory > 0
     assert metadata.pid > 0
     assert metadata.load_average_1min >= 0.0
+    assert metadata.load_average_5min >= 0.0
+    assert metadata.load_average_15min >= 0.0
 
 
 def test_dispatch_uses_the_operations_own_default_parameters(dispatcher):
